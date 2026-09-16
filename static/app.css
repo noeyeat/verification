@@ -57,3 +57,14 @@ li a:hover { text-decoration: underline; }
   color: var(--muted);
 }
 #search-input { margin-bottom: .5rem; }
+.home-actions { margin: .5rem 0 .75rem; }
+.task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.task-row a { flex: 1; min-width: 0; }
+.toggle-done { flex-shrink: 0; padding: .35rem .65rem; font-size: .9rem; }
+li.done a { text-decoration: line-through; color: var(--muted); }
+li.done { opacity: 0.85; }

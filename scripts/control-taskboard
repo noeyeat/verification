@@ -218,8 +218,27 @@ cmd_cli() {
       payload=$(python3 -c "import json,sys; print(json.dumps({'title':sys.argv[1],'body':sys.argv[2]}))" "$title" "$body")
       curl -fsS -X POST "$BASE_URL/api/tasks" -H 'Content-Type: application/json' -d "$payload"; echo
       ;;
+    complete)
+      tid="${1:-}"
+      if [[ -z "$tid" ]]; then
+        echo "usage: control-taskboard cli -- complete <task-id>" >&2
+        exit 2
+      fi
+      curl -fsS -X POST "$BASE_URL/api/tasks/$tid" -H 'Content-Type: application/json' -d '{"done":true}'; echo
+      ;;
+    incomplete)
+      tid="${1:-}"
+      if [[ -z "$tid" ]]; then
+        echo "usage: control-taskboard cli -- incomplete <task-id>" >&2
+        exit 2
+      fi
+      curl -fsS -X POST "$BASE_URL/api/tasks/$tid" -H 'Content-Type: application/json' -d '{"done":false}'; echo
+      ;;
+    clear-completed)
+      curl -fsS -X POST "$BASE_URL/api/tasks/clear-completed" -H 'Content-Type: application/json' -d '{}'; echo
+      ;;
     *)
-      echo "cli subs: health | list | search <q> | create --title T --body B" >&2
+      echo "cli subs: health | list | search <q> | create --title T --body B | complete <id> | incomplete <id> | clear-completed" >&2
       exit 2
       ;;
   esac

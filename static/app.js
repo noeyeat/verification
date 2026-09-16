@@ -30,6 +30,12 @@
     }
     for (const task of tasks) {
       const li = document.createElement("li");
+      if (task.done) {
+        li.classList.add("done");
+      }
+      const row = document.createElement("div");
+      row.className = "task-row";
+
       const a = document.createElement("a");
       a.href = `#task-${task.id}`;
       a.textContent = task.title;
@@ -38,10 +44,30 @@
         e.preventDefault();
         openDetail(task);
       });
+
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "toggle-done";
+      const markName = task.done
+        ? `Mark incomplete: ${task.title}`
+        : `Mark complete: ${task.title}`;
+      toggle.setAttribute("aria-label", markName);
+      toggle.textContent = task.done ? "Undo" : "Done";
+      toggle.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await setDone(task.id, !task.done);
+        await refreshHome();
+      });
+
+      row.appendChild(a);
+      row.appendChild(toggle);
       const p = document.createElement("p");
       p.className = "meta";
       p.textContent = task.body || "(no body)";
-      li.appendChild(a);
+      if (task.done) {
+        p.textContent += " · completed";
+      }
+      li.appendChild(row);
       li.appendChild(p);
       el.appendChild(li);
     }
@@ -54,10 +80,30 @@
     return data.tasks || [];
   }
 
+  async function setDone(id, done) {
+    const res = await fetch(`/api/tasks/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ done }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "update failed");
+    }
+    return res.json();
+  }
+
   async function refreshHome() {
     const tasks = await fetchTasks();
     const status = document.getElementById("home-status");
-    status.textContent = tasks.length ? `${tasks.length} task(s)` : "No tasks yet";
+    const doneCount = tasks.filter((t) => t.done).length;
+    if (!tasks.length) {
+      status.textContent = "No tasks yet";
+    } else if (doneCount) {
+      status.textContent = `${tasks.length} task(s) · ${doneCount} completed`;
+    } else {
+      status.textContent = `${tasks.length} task(s)`;
+    }
     renderList(document.getElementById("task-list"), tasks, "No tasks yet. Create one.");
   }
 
@@ -65,7 +111,9 @@
     document.getElementById("detail-heading").textContent = "Task";
     document.getElementById("detail-title").textContent = task.title;
     document.getElementById("detail-body").textContent = task.body || "(no body)";
-    document.getElementById("detail-meta").textContent = `id=${task.id} created=${task.created_at || ""}`;
+    const doneLabel = task.done ? "completed" : "incomplete";
+    document.getElementById("detail-meta").textContent =
+      `id=${task.id} created=${task.created_at || ""} · ${doneLabel}`;
     show("detail");
   }
 
@@ -111,8 +159,28 @@
     status.setAttribute("aria-label", "Task saved");
     show("home");
     await refreshHome();
-    // flash saved title presence
     document.getElementById("home-status").textContent = `Saved “${data.task.title}”`;
+  });
+
+  document.getElementById("clear-completed").addEventListener("click", async () => {
+    const res = await fetch("/api/tasks/clear-completed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const data = await res.json();
+    const status = document.getElementById("home-status");
+    if (!res.ok) {
+      status.textContent = data.error || "Clear failed";
+      return;
+    }
+    await refreshHome();
+    const msg =
+      data.removed === 0
+        ? "No completed tasks to clear"
+        : `Cleared ${data.removed} completed task(s)`;
+    status.textContent = msg;
+    status.setAttribute("aria-label", msg);
   });
 
   let searchTimer = null;

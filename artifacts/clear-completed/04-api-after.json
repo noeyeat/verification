@@ -1,0 +1,12 @@
+{
+  "tasks": [
+    {
+      "id": "fd6b1e2a-bd4a-4b01-ba18-1dcb8fdfcd2a",
+      "title": "Keep me open",
+      "body": "Should remain",
+      "done": false,
+      "created_at": "2026-09-16T21:41:05Z"
+    }
+  ],
+  "query": ""
+}

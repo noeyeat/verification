@@ -64,6 +64,7 @@ One-shot create-task proof recipe:
 
 ```bash
 control-taskboard browser recipe create-task
+control-taskboard browser recipe clear-completed
 ```
 
 CLI / API helpers (same data store as the UI):
@@ -73,6 +74,8 @@ control-taskboard cli -- create --title "CLI note" --body "Created from terminal
 control-taskboard cli -- search "quarterly"
 control-taskboard cli -- list
 control-taskboard cli -- health
+control-taskboard cli -- complete <task-id>
+control-taskboard cli -- clear-completed
 ```
 
 Stable handles from this app:
@@ -91,6 +94,9 @@ Stable handles from this app:
 | Task list | list `Task list` |
 | Search results | list `Search results` |
 | Back | button `Back to all tasks` |
+| Clear completed | button `Clear completed` |
+| Mark complete | button `Mark complete: <title>` |
+| Mark incomplete | button `Mark incomplete: <title>` |
 
 Feature recipes live in `features/`. Drive mapped entry points from those files; do not invent alternate selectors.
 
