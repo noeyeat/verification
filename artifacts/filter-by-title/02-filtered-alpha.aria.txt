@@ -1,0 +1,24 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - heading "TaskBoard" [level=1]
+  - paragraph: Demo task list for verification
+  - navigation "Primary":
+    - button "Home"
+    - button "New task"
+    - button "Search"
+- main:
+  - region "All tasks":
+    - heading "All tasks" [level=2]
+    - status: 1 of 4 task(s) match filter
+    - text: Filter by title
+    - searchbox "Filter by title": alpha
+    - button "Clear filter"
+    - button "Clear completed"
+    - list "Task list":
+      - listitem:
+        - link "Alpha rocket":
+          - /url: "#task-05430b4b-8f3d-48ae-9484-7d9a24dfbb18"
+        - 'button "Mark complete: Alpha rocket"': Done
+        - paragraph: launch notes
+- contentinfo: TaskBoard build=demo-1 · data=/workspace/verification/.taskboard-run/data

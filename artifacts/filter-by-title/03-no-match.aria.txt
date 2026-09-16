@@ -1,0 +1,20 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - heading "TaskBoard" [level=1]
+  - paragraph: Demo task list for verification
+  - navigation "Primary":
+    - button "Home"
+    - button "New task"
+    - button "Search"
+- main:
+  - region "All tasks":
+    - heading "All tasks" [level=2]
+    - status: 0 of 4 task(s) match filter
+    - text: Filter by title
+    - searchbox "Filter by title": zzz-nope
+    - button "Clear filter"
+    - button "Clear completed"
+    - list "Task list":
+      - listitem: No matching tasks
+- contentinfo: TaskBoard build=demo-1 · data=/workspace/verification/.taskboard-run/data
