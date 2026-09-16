@@ -1,0 +1,26 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - heading "TaskBoard" [level=1]
+  - paragraph: Demo task list for verification
+  - navigation "Primary":
+    - button "Home"
+    - button "New task"
+    - button "Search"
+- main:
+  - region "All tasks":
+    - heading "All tasks" [level=2]
+    - status: Saved “Done chore”
+    - button "Clear completed"
+    - list "Task list":
+      - listitem:
+        - link "Done chore":
+          - /url: "#task-edb5bdaf-75a8-430a-9a8c-2d0c53180950"
+        - 'button "Mark complete: Done chore"': Done
+        - paragraph: Should be cleared
+      - listitem:
+        - link "Keep me open":
+          - /url: "#task-fd6b1e2a-bd4a-4b01-ba18-1dcb8fdfcd2a"
+        - 'button "Mark complete: Keep me open"': Done
+        - paragraph: Should remain
+- contentinfo: TaskBoard build=demo-1 · data=/workspace/verification/.taskboard-run/data

@@ -143,6 +143,7 @@ class Handler(BaseHTTPRequestHandler):
                 "id": str(uuid.uuid4()),
                 "title": title,
                 "body": body,
+                "done": bool(data.get("done", False)),
                 "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             }
             tasks = load_tasks()
@@ -165,11 +166,46 @@ class Handler(BaseHTTPRequestHandler):
                         "id": str(t.get("id") or uuid.uuid4()),
                         "title": str(t.get("title", "")).strip(),
                         "body": str(t.get("body", "")).strip(),
+                        "done": bool(t.get("done", False)),
                         "created_at": str(t.get("created_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())),
                     }
                 )
             save_tasks(normalized)
             self._json(200, {"ok": True, "count": len(normalized)})
+            return
+
+        if parsed.path == "/api/tasks/clear-completed":
+            tasks = load_tasks()
+            kept = [t for t in tasks if not t.get("done")]
+            removed = len(tasks) - len(kept)
+            save_tasks(kept)
+            self._json(200, {"ok": True, "removed": removed, "remaining": len(kept)})
+            return
+
+        m = re.fullmatch(r"/api/tasks/([0-9a-fA-F-]{36})", parsed.path)
+        if m:
+            # PATCH-like update via POST for mark done/undone
+            tid = m.group(1)
+            data = self._read_json()
+            tasks = load_tasks()
+            found = None
+            for t in tasks:
+                if t.get("id") == tid:
+                    if "done" in data:
+                        t["done"] = bool(data["done"])
+                    if "title" in data:
+                        title = str(data["title"]).strip()
+                        if title:
+                            t["title"] = title
+                    if "body" in data:
+                        t["body"] = str(data["body"]).strip()
+                    found = t
+                    break
+            if not found:
+                self._json(404, {"error": "task not found"})
+                return
+            save_tasks(tasks)
+            self._json(200, {"task": found})
             return
 
         self._json(404, {"error": "not found"})
