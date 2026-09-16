@@ -68,3 +68,13 @@ li a:hover { text-decoration: underline; }
 .toggle-done { flex-shrink: 0; padding: .35rem .65rem; font-size: .9rem; }
 li.done a { text-decoration: line-through; color: var(--muted); }
 li.done { opacity: 0.85; }
+
+.home-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin: .5rem 0 .25rem;
+}
+.home-filter label { margin: 0; }
+.home-filter input { width: auto; flex: 1; min-width: 10rem; }

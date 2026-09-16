@@ -11,6 +11,8 @@
     search: document.getElementById("nav-search"),
   };
 
+  let filterQuery = "";
+
   function show(name) {
     Object.entries(views).forEach(([key, el]) => {
       el.hidden = key !== name;
@@ -95,16 +97,23 @@
 
   async function refreshHome() {
     const tasks = await fetchTasks();
+    const q = filterQuery.trim().toLowerCase();
+    const visible = q
+      ? tasks.filter((t) => (t.title || "").toLowerCase().includes(q))
+      : tasks;
     const status = document.getElementById("home-status");
     const doneCount = tasks.filter((t) => t.done).length;
     if (!tasks.length) {
       status.textContent = "No tasks yet";
+    } else if (q) {
+      status.textContent = `${visible.length} of ${tasks.length} task(s) match filter`;
     } else if (doneCount) {
       status.textContent = `${tasks.length} task(s) · ${doneCount} completed`;
     } else {
       status.textContent = `${tasks.length} task(s)`;
     }
-    renderList(document.getElementById("task-list"), tasks, "No tasks yet. Create one.");
+    const emptyMsg = q ? "No matching tasks" : "No tasks yet. Create one.";
+    renderList(document.getElementById("task-list"), visible, emptyMsg);
   }
 
   function openDetail(task) {
@@ -181,6 +190,18 @@
         : `Cleared ${data.removed} completed task(s)`;
     status.textContent = msg;
     status.setAttribute("aria-label", msg);
+  });
+
+  document.getElementById("filter-title").addEventListener("input", () => {
+    filterQuery = document.getElementById("filter-title").value;
+    refreshHome();
+  });
+
+  document.getElementById("clear-filter").addEventListener("click", () => {
+    filterQuery = "";
+    document.getElementById("filter-title").value = "";
+    refreshHome();
+    document.getElementById("filter-title").focus();
   });
 
   let searchTimer = null;
