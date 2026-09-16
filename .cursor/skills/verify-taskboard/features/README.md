@@ -48,3 +48,4 @@ Keep implementation details out of the map. Name only user paths, stable handles
 - [Search tasks](./search.md) covers toolbar search with matching, empty, and clear states plus CLI search.
 - [Open task detail](./task-detail.md) covers opening a task from the list and returning home.
 - [Clear completed](./clear-completed.md) covers marking tasks done and removing all completed tasks while incomplete remain.
+- [Filter by title](./filter-by-title.md) covers the home list title substring filter and clear.

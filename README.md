@@ -16,7 +16,8 @@ Isolation: set `TASKBOARD_PORT` and `TASKBOARD_DATA_DIR` (and optionally `TASKBO
 
 - **Home** — list all tasks
 - **New task** — create a titled task with optional body
-- **Search** — filter tasks by title or body text
+- **Search** — filter tasks by title or body text (dedicated Search page)
+- **Home title filter** — on Home, filter the visible list by title substring only
 - **Clear completed** — mark tasks done, then remove all completed in one action
 
 ## Verification

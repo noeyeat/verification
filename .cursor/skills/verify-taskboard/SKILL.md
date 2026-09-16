@@ -65,6 +65,7 @@ One-shot create-task proof recipe:
 ```bash
 control-taskboard browser recipe create-task
 control-taskboard browser recipe clear-completed
+control-taskboard browser recipe filter-by-title
 ```
 
 CLI / API helpers (same data store as the UI):
@@ -95,6 +96,8 @@ Stable handles from this app:
 | Search results | list `Search results` |
 | Back | button `Back to all tasks` |
 | Clear completed | button `Clear completed` |
+| Filter by title | searchbox `Filter by title` |
+| Clear filter | button `Clear filter` |
 | Mark complete | button `Mark complete: <title>` |
 | Mark incomplete | button `Mark incomplete: <title>` |
 

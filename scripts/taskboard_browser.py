@@ -64,7 +64,7 @@ def main(argv: list[str]) -> int:
 
     # one-shot recipe runner for create-task proof
     p_recipe = sub.add_parser("recipe")
-    p_recipe.add_argument("name", choices=["create-task", "clear-completed"])
+    p_recipe.add_argument("name", choices=["create-task", "clear-completed", "filter-by-title"])
     p_recipe.add_argument("--evidence-dir", default=None)
 
     args = parser.parse_args(argv)
@@ -195,6 +195,73 @@ def main(argv: list[str]) -> int:
                                 "feature": "clear-completed",
                                 "evidence": str(evid),
                                 "titles_after": titles_after,
+                            }
+                        )
+                    )
+                elif args.name == "filter-by-title":
+                    evid = base_evid / "filter-by-title"
+                    evid.mkdir(parents=True, exist_ok=True)
+                    page.get_by_role("heading", name="All tasks").wait_for()
+                    # Create two distinct titles
+                    page.get_by_role("button", name="New task").click()
+                    page.get_by_role("textbox", name="Title").fill("Alpha rocket")
+                    page.get_by_role("textbox", name="Body").fill("launch notes")
+                    page.get_by_role("button", name="Save task").click()
+                    page.get_by_role("link", name="Alpha rocket").wait_for()
+                    page.get_by_role("button", name="New task").click()
+                    page.get_by_role("textbox", name="Title").fill("Beta notes")
+                    page.get_by_role("textbox", name="Body").fill("alpha appears only in body")
+                    page.get_by_role("button", name="Save task").click()
+                    page.get_by_role("link", name="Beta notes").wait_for()
+                    page.screenshot(path=str(evid / "01-all-tasks.png"), full_page=True)
+                    (evid / "01-all-tasks.aria.txt").write_text(
+                        page.locator("body").aria_snapshot(), encoding="utf-8"
+                    )
+                    # Filter by title substring
+                    page.get_by_role("searchbox", name="Filter by title").fill("alpha")
+                    page.wait_for_timeout(200)
+                    page.get_by_role("link", name="Alpha rocket").wait_for()
+                    assert page.get_by_role("link", name="Beta notes").count() == 0
+                    # Body-only "alpha" must not match Beta notes
+                    page.screenshot(path=str(evid / "02-filtered-alpha.png"), full_page=True)
+                    (evid / "02-filtered-alpha.aria.txt").write_text(
+                        page.locator("body").aria_snapshot(), encoding="utf-8"
+                    )
+                    # Empty match
+                    page.get_by_role("searchbox", name="Filter by title").fill("zzz-nope")
+                    page.wait_for_timeout(200)
+                    assert "No matching tasks" in page.locator("#task-list").inner_text()
+                    page.screenshot(path=str(evid / "03-no-match.png"), full_page=True)
+                    (evid / "03-no-match.aria.txt").write_text(
+                        page.locator("body").aria_snapshot(), encoding="utf-8"
+                    )
+                    # Clear filter
+                    page.get_by_role("button", name="Clear filter").click()
+                    page.wait_for_timeout(200)
+                    page.get_by_role("link", name="Alpha rocket").wait_for()
+                    page.get_by_role("link", name="Beta notes").wait_for()
+                    page.screenshot(path=str(evid / "04-cleared.png"), full_page=True)
+                    (evid / "04-cleared.aria.txt").write_text(
+                        page.locator("body").aria_snapshot(), encoding="utf-8"
+                    )
+                    # Completed task still filters by title
+                    page.get_by_role("button", name="Mark complete: Alpha rocket").click()
+                    page.wait_for_timeout(300)
+                    page.get_by_role("button", name="Mark incomplete: Alpha rocket").wait_for()
+                    page.get_by_role("searchbox", name="Filter by title").fill("alpha")
+                    page.wait_for_timeout(200)
+                    page.get_by_role("link", name="Alpha rocket").wait_for()
+                    assert page.get_by_role("link", name="Beta notes").count() == 0
+                    page.screenshot(path=str(evid / "05-completed-filtered.png"), full_page=True)
+                    (evid / "05-completed-filtered.aria.txt").write_text(
+                        page.locator("body").aria_snapshot(), encoding="utf-8"
+                    )
+                    print(
+                        json.dumps(
+                            {
+                                "ok": True,
+                                "feature": "filter-by-title",
+                                "evidence": str(evid),
                             }
                         )
                     )
