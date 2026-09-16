@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+# control-taskboard — launch, doctor, drive, and cleanup for TaskBoard verification.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RUN_DIR="${TASKBOARD_RUN_DIR:-$ROOT/.taskboard-run}"
+PID_FILE="$RUN_DIR/server.pid"
+LOG_FILE="$RUN_DIR/server.log"
+META_FILE="$RUN_DIR/meta.env"
+EVIDENCE_DIR="${TASKBOARD_EVIDENCE_DIR:-$ROOT/artifacts}"
+VENV="$ROOT/.venv-harness"
+PY_BROWSER="$ROOT/scripts/taskboard_browser.py"
+
+default_port="${TASKBOARD_PORT:-8765}"
+default_host="${TASKBOARD_HOST:-127.0.0.1}"
+default_data="${TASKBOARD_DATA_DIR:-$RUN_DIR/data}"
+
+usage() {
+  cat <<USAGE
+Usage: control-taskboard <command> [args]
+
+Commands:
+  launch [--port N] [--data-dir PATH] [--build ID]
+  doctor
+  stop | cleanup
+  seed [--title T --body B]...   (or JSON via --file)
+  cli -- <curl-style API helper>
+  browser <click|fill|press|snapshot|screenshot|goto|eval> ...
+
+Env:
+  TASKBOARD_PORT TASKBOARD_HOST TASKBOARD_DATA_DIR TASKBOARD_BUILD_ID
+  TASKBOARD_RUN_DIR TASKBOARD_EVIDENCE_DIR
+USAGE
+}
+
+ensure_run_dir() {
+  mkdir -p "$RUN_DIR" "$EVIDENCE_DIR"
+}
+
+load_meta() {
+  if [[ -f "$META_FILE" ]]; then
+    # shellcheck disable=SC1090
+    source "$META_FILE"
+  fi
+  HOST="${TASKBOARD_HOST:-$default_host}"
+  PORT="${TASKBOARD_PORT:-$default_port}"
+  DATA_DIR="${TASKBOARD_DATA_DIR:-$default_data}"
+  BUILD_ID="${TASKBOARD_BUILD_ID:-demo-1}"
+  BASE_URL="http://${HOST}:${PORT}"
+}
+
+write_meta() {
+  cat > "$META_FILE" <<META
+export TASKBOARD_HOST='$HOST'
+export TASKBOARD_PORT='$PORT'
+export TASKBOARD_DATA_DIR='$DATA_DIR'
+export TASKBOARD_BUILD_ID='$BUILD_ID'
+META
+}
+
+ensure_harness_venv() {
+  if [[ ! -x "$VENV/bin/python" ]]; then
+    python3 -m venv "$VENV"
+    "$VENV/bin/pip" install -q -r "$ROOT/requirements-harness.txt"
+    "$VENV/bin/playwright" install chromium
+  fi
+}
+
+cmd_launch() {
+  ensure_run_dir
+  load_meta
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --port) PORT="$2"; shift 2 ;;
+      --data-dir) DATA_DIR="$2"; shift 2 ;;
+      --build) BUILD_ID="$2"; shift 2 ;;
+      --host) HOST="$2"; shift 2 ;;
+      *) echo "unknown launch arg: $1" >&2; exit 2 ;;
+    esac
+  done
+  if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    echo "already running pid=$(cat "$PID_FILE") url=$BASE_URL" >&2
+    exit 1
+  fi
+  mkdir -p "$DATA_DIR"
+  write_meta
+  load_meta
+  BASE_URL="http://${HOST}:${PORT}"
+  TASKBOARD_HOST="$HOST" TASKBOARD_PORT="$PORT" TASKBOARD_DATA_DIR="$DATA_DIR" TASKBOARD_BUILD_ID="$BUILD_ID" \
+    nohup python3 "$ROOT/server.py" >"$LOG_FILE" 2>&1 &
+  echo $! >"$PID_FILE"
+  for _ in $(seq 1 50); do
+    if curl -fsS "$BASE_URL/api/health" >/dev/null 2>&1; then
+      curl -fsS "$BASE_URL/api/health"
+      echo
+      echo "launched pid=$(cat "$PID_FILE") url=$BASE_URL data_dir=$DATA_DIR"
+      return 0
+    fi
+    sleep 0.1
+  done
+  echo "launch failed; last log:" >&2
+  tail -n 40 "$LOG_FILE" >&2 || true
+  exit 1
+}
+
+cmd_doctor() {
+  load_meta
+  if [[ ! -f "$PID_FILE" ]]; then
+    echo "doctor: FAIL no pid file at $PID_FILE"
+    exit 1
+  fi
+  pid="$(cat "$PID_FILE")"
+  if ! kill -0 "$pid" 2>/dev/null; then
+    echo "doctor: FAIL stale pid $pid"
+    exit 1
+  fi
+  if ! health="$(curl -fsS "$BASE_URL/api/health")"; then
+    echo "doctor: FAIL health endpoint not answering at $BASE_URL"
+    exit 1
+  fi
+  echo "$health" | python3 -c "
+import json,os,sys
+h=json.load(sys.stdin)
+want_port=int(os.environ.get('TASKBOARD_PORT','$PORT'))
+want_data=os.path.realpath(os.environ.get('TASKBOARD_DATA_DIR','$DATA_DIR'))
+want_build=os.environ.get('TASKBOARD_BUILD_ID','$BUILD_ID')
+ok=True
+def check(name, got, want):
+    global ok
+    match = str(got)==str(want)
+    print(f'  {name}: got={got!r} want={want!r} {\"OK\" if match else \"FAIL\"}')
+    if not match: ok=False
+print('doctor: checking TaskBoard instance')
+print(f'  pid: { \"$pid\" }')
+print(f'  url: $BASE_URL')
+check('build', h.get('build'), want_build)
+check('port', h.get('port'), want_port)
+check('data_dir', os.path.realpath(h.get('data_dir','')), want_data)
+check('app', h.get('app'), 'TaskBoard')
+print('doctor: PASS' if ok else 'doctor: FAIL')
+sys.exit(0 if ok else 1)
+"
+}
+
+cmd_stop() {
+  load_meta
+  if [[ -f "$PID_FILE" ]]; then
+    pid="$(cat "$PID_FILE")"
+    if kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" || true
+      for _ in $(seq 1 30); do
+        kill -0 "$pid" 2>/dev/null || break
+        sleep 0.1
+      done
+      if kill -0 "$pid" 2>/dev/null; then
+        kill -9 "$pid" || true
+      fi
+      echo "stopped pid=$pid"
+    else
+      echo "pid $pid not running"
+    fi
+    rm -f "$PID_FILE"
+  else
+    echo "no pid file; nothing to stop"
+  fi
+  # remove scratch state only — never evidence
+  if [[ -d "$RUN_DIR/data" ]]; then
+    rm -rf "$RUN_DIR/data"
+  fi
+  rm -f "$META_FILE" "$LOG_FILE"
+  echo "cleanup done; evidence kept under $EVIDENCE_DIR"
+}
+
+cmd_seed() {
+  load_meta
+  # default demo seeds if no args
+  if [[ $# -eq 0 ]]; then
+    curl -fsS -X POST "$BASE_URL/api/seed" \
+      -H 'Content-Type: application/json' \
+      -d '{"tasks":[{"title":"Quarterly plan","body":"Draft budget"},{"title":"Grocery list","body":"Milk and eggs"}]}'
+    echo
+    return
+  fi
+  if [[ "$1" == "--file" ]]; then
+    curl -fsS -X POST "$BASE_URL/api/seed" -H 'Content-Type: application/json' --data-binary @"$2"
+    echo
+    return
+  fi
+  echo "use: control-taskboard seed   OR   control-taskboard seed --file tasks.json" >&2
+  exit 2
+}
+
+cmd_cli() {
+  load_meta
+  if [[ "${1:-}" == "--" ]]; then shift; fi
+  sub="${1:-}"
+  shift || true
+  case "$sub" in
+    health)
+      curl -fsS "$BASE_URL/api/health"; echo
+      ;;
+    list)
+      curl -fsS "$BASE_URL/api/tasks"; echo
+      ;;
+    search)
+      q="${1:-}"
+      curl -fsS "$BASE_URL/api/tasks?q=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$q")"; echo
+      ;;
+    create)
+      title=""; body=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --title) title="$2"; shift 2 ;;
+          --body) body="$2"; shift 2 ;;
+          *) shift ;;
+        esac
+      done
+      payload=$(python3 -c "import json,sys; print(json.dumps({'title':sys.argv[1],'body':sys.argv[2]}))" "$title" "$body")
+      curl -fsS -X POST "$BASE_URL/api/tasks" -H 'Content-Type: application/json' -d "$payload"; echo
+      ;;
+    *)
+      echo "cli subs: health | list | search <q> | create --title T --body B" >&2
+      exit 2
+      ;;
+  esac
+}
+
+cmd_browser() {
+  ensure_harness_venv
+  load_meta
+  export TASKBOARD_BASE_URL="$BASE_URL"
+  export TASKBOARD_EVIDENCE_DIR="$EVIDENCE_DIR"
+  "$VENV/bin/python" "$PY_BROWSER" "$@"
+}
+
+main() {
+  cmd="${1:-}"
+  shift || true
+  case "$cmd" in
+    launch) cmd_launch "$@" ;;
+    doctor) cmd_doctor "$@" ;;
+    stop|cleanup) cmd_stop "$@" ;;
+    seed) cmd_seed "$@" ;;
+    cli) cmd_cli "$@" ;;
+    browser) cmd_browser "$@" ;;
+    -h|--help|help|"") usage; [[ -n "$cmd" ]] || exit 2 ;;
+    *) echo "unknown command: $cmd" >&2; usage; exit 2 ;;
+  esac
+}
+
+main "$@"
