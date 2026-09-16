@@ -1,0 +1,39 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - heading "TaskBoard" [level=1]
+  - paragraph: Demo task list for verification
+  - navigation "Primary":
+    - button "Home"
+    - button "New task"
+    - button "Search"
+- main:
+  - region "All tasks":
+    - heading "All tasks" [level=2]
+    - status: Saved “Beta notes”
+    - text: Filter by title
+    - searchbox "Filter by title"
+    - button "Clear filter"
+    - button "Clear completed"
+    - list "Task list":
+      - listitem:
+        - link "Beta notes":
+          - /url: "#task-745f8263-feb6-4c84-b63c-0e5988959342"
+        - 'button "Mark complete: Beta notes"': Done
+        - paragraph: alpha appears only in body
+      - listitem:
+        - link "Alpha rocket":
+          - /url: "#task-05430b4b-8f3d-48ae-9484-7d9a24dfbb18"
+        - 'button "Mark complete: Alpha rocket"': Done
+        - paragraph: launch notes
+      - listitem:
+        - link "Quarterly plan":
+          - /url: "#task-c12675e2-4ba6-4fe7-866d-c1281eb27535"
+        - 'button "Mark complete: Quarterly plan"': Done
+        - paragraph: Draft budget
+      - listitem:
+        - link "Grocery list":
+          - /url: "#task-c2079f4f-4a08-4875-867a-eb586c74c00b"
+        - 'button "Mark complete: Grocery list"': Done
+        - paragraph: Milk and eggs
+- contentinfo: TaskBoard build=demo-1 · data=/workspace/verification/.taskboard-run/data

@@ -25,6 +25,11 @@
     <section id="view-home" aria-labelledby="home-heading">
       <h2 id="home-heading">All tasks</h2>
       <p id="home-status" role="status" aria-live="polite"></p>
+      <div class="home-filter">
+        <label for="filter-title">Filter by title</label>
+        <input id="filter-title" type="search" role="searchbox" aria-label="Filter by title" autocomplete="off" />
+        <button type="button" id="clear-filter">Clear filter</button>
+      </div>
       <div class="actions home-actions">
         <button type="button" id="clear-completed">Clear completed</button>
       </div>
