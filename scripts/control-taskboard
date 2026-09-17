@@ -163,6 +163,26 @@ cmd_stop() {
   else
     echo "no pid file; nothing to stop"
   fi
+  # stop persistent browser (CDP) if this run started one
+  BROWSER_PID_FILE="$RUN_DIR/browser.pid"
+  if [[ -f "$BROWSER_PID_FILE" ]]; then
+    bpid="$(cat "$BROWSER_PID_FILE")"
+    if kill -0 "$bpid" 2>/dev/null; then
+      kill "$bpid" || true
+      for _ in $(seq 1 30); do
+        kill -0 "$bpid" 2>/dev/null || break
+        sleep 0.1
+      done
+      if kill -0 "$bpid" 2>/dev/null; then
+        kill -9 "$bpid" || true
+      fi
+      echo "stopped browser pid=$bpid"
+    fi
+    rm -f "$BROWSER_PID_FILE"
+  fi
+  rm -f "$RUN_DIR/browser_ws.txt"
+  rm -rf "$RUN_DIR/browser-profile"
+
   # remove scratch state only — never evidence
   if [[ -d "$RUN_DIR/data" ]]; then
     rm -rf "$RUN_DIR/data"

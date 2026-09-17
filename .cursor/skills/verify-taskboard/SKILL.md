@@ -49,6 +49,8 @@ Pass criteria: pid alive, `/api/health` answers, reported `app=TaskBoard`, `buil
 
 Prefer ARIA roles and accessible names.
 
+Browser session: the first `control-taskboard browser …` launches a long-lived Chromium under `$TASKBOARD_RUN_DIR` (CDP). Later `browser click|fill|snapshot|…` commands reuse that page so client-side views (detail, search, editor) survive across CLI invocations. `browser goto` reloads and resets SPA state. `control-taskboard cleanup` stops the browser. Recipes call `goto` internally so they start from Home.
+
 Browser (Playwright via harness):
 
 ```bash

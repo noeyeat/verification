@@ -16,7 +16,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 - Start every recipe from the baseline state unless its preconditions say otherwise.
 - Prefer ARIA roles and accessible names over CSS selectors or DOM position.
 - Treat every command as literal. Keep quoted names and flags unchanged.
-- Run browser actions through `control-taskboard browser`.
+- Run browser actions through `control-taskboard browser` (session persists until cleanup; use `browser goto` to reset).
 - Run API/CLI actions through `control-taskboard cli -- <command>`.
 - Restore or re-seed disposable data after a mutation. Do not remove proof artifacts during cleanup.
 
