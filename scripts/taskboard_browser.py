@@ -29,9 +29,13 @@ CTX_DIR = STATE / "browser-profile"
 
 
 def role_locator(page, role: str, name: str | None):
+    # Exact (whole-string, case-sensitive) accessible-name match: with the
+    # persistent session the Search view stays open, and a substring match for
+    # "Search" would also hit "Clear search" (strict-mode violation).
     kwargs = {}
     if name is not None:
         kwargs["name"] = name
+        kwargs["exact"] = True
     return page.get_by_role(role, **kwargs)
 
 

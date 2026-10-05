@@ -47,7 +47,7 @@ Pass criteria: pid alive, `/api/health` answers, reported `app=TaskBoard`, `buil
 
 ## Drive
 
-Prefer ARIA roles and accessible names.
+Prefer ARIA roles and accessible names. `browser click|fill --name` matches the full accessible name exactly (case-sensitive), so `--name "Search"` targets only the nav button, not `Clear search`; pass the complete name from the handles table.
 
 Browser session: the first `control-taskboard browser …` launches a long-lived Chromium under `$TASKBOARD_RUN_DIR` (CDP). Later `browser click|fill|snapshot|…` commands reuse that page so client-side views (detail, search, editor) survive across CLI invocations. `browser goto` reloads and resets SPA state. `control-taskboard cleanup` stops the browser. Recipes call `goto` internally so they start from Home.
 
