@@ -35,7 +35,7 @@ python3 -m venv .venv-harness
 .venv-harness/bin/playwright install chromium
 ```
 
-`control-taskboard browser` also bootstraps the venv if missing.
+`control-taskboard browser` also bootstraps the venv if missing, and reinstalls Playwright Chromium when the venv exists but its browser binary is gone (e.g. a cleared `~/.cache/ms-playwright`).
 
 ## Doctor
 

@@ -66,6 +66,13 @@ def ensure_browser(p) -> str:
     endpoint = f"http://127.0.0.1:{port}"
     CTX_DIR.mkdir(parents=True, exist_ok=True)
     chrome = p.chromium.executable_path
+    if not Path(chrome).exists():
+        # The venv can outlive the per-user Playwright browser cache
+        # (~/.cache/ms-playwright); reinstall instead of crashing on Popen.
+        print(f"browser: Chromium missing at {chrome}; running playwright install chromium", file=sys.stderr)
+        subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True, stdout=sys.stderr)
+        if not Path(chrome).exists():
+            raise RuntimeError(f"Chromium still missing at {chrome} after playwright install")
     proc = subprocess.Popen(
         [
             chrome,
